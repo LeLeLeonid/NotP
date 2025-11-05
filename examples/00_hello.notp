@@ -1,0 +1,2 @@
+// The simplest program: printing a string constant.
+print("Hello, NotP!")

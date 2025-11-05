@@ -1,0 +1,14 @@
+// This example demonstrates variable assignment and arithmetic operations.
+a = 20
+b = 5
+
+print("a = 20, b = 5")
+print("a + b =")
+print(a + b)
+
+print("a * b =")
+print(a * b)
+
+result = (a + 5) * 2
+print("(a + 5) * 2 =")
+print(result)

@@ -1,17 +1,15 @@
 def interpret(ast, env=None):
+    """Executes an AST directly using a tree-walking interpreter approach."""
     if env is None:
         env = {}
 
     cmd = ast[0]
 
     if cmd == "program":
-        # Сначала обрабатываем все объявления
         for stmt in ast[1]:
             interpret(stmt, env)
-        # Затем вызываем main, если она есть
         if "main" in env:
             func_type, params, body = env["main"]
-            # Выполняем тело функции main
             interpret(body, env)
 
     elif cmd == "assign":

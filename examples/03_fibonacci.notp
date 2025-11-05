@@ -1,0 +1,18 @@
+// Calculate and print the first 10 Fibonacci numbers (iteratively).
+
+limit = 10
+a = 0
+b = 1
+
+print("First 10 Fibonacci numbers:")
+print(a)
+print(b)
+
+count = 2
+while (count < limit) {
+  next = a + b
+  print(next)
+  a = b
+  b = next
+  count = count + 1
+}

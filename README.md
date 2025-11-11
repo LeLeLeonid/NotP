@@ -1,7 +1,7 @@
 # NotP Language
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Status](https://img.shields.io/badge/status-in--development-orange)]()
 
-NotP is an experimental, dynamically-typed programming language built from scratch in Python. It features a tree-walking interpreter and a bytecode compiler with its own virtual machine (VM). This project serves as a practical exploration of compiler theory, language design, and virtual machine architecture.
+NotP is an experimental, dynamically-typed programming language built from scratch in Python. It features a tree-walking interpreter and a bytecode compiler with its own virtual machine (stack-based). This project serves as a practical exploration of compiler theory, language design, and virtual machine architecture.
 
 ## Features
 

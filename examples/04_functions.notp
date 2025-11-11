@@ -1,0 +1,35 @@
+// Example demonstrating function definitions, calls, and scopes.
+
+x = 100
+
+func print_global() {
+  // This function can see the global 'x'
+  print("Inside print_global, x is:")
+  print(x)
+}
+
+func adder(a, b) {
+  // 'a' and 'b' are local variables.
+  // This function cannot see 'x' from the outside if it had its own 'x'.
+  print("Running adder...")
+  return a + b
+}
+
+print("--= Testing simple function calls =--")
+print_global()
+
+result = adder(10, 25)
+print("Result of adder(10, 25) is:")
+print(result)
+
+func fib(n) {
+  if (n < 2) {
+    return n
+  }
+  
+  return fib(n - 1) + fib(n - 2)
+}
+
+print("--= Testing recursion: fib(10) =--")
+fib_result = fib(10)
+print(fib_result) // Should be 55

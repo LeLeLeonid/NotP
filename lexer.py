@@ -11,12 +11,12 @@ TOKEN_SPEC = [
     ("STRING", r'"([^"\\]|\\.)*"'),
 
     # --- Keywords ---
-    ("PRINT", r"print"),
-    ("FUNC", r"func"),
-    ("IF", r"if"),
-    ("ELSE", r"else"),
-    ("WHILE", r"while"),
-    ("RETURN", r"return"),
+    ("PRINT", r"print\b"),
+    ("FUNC", r"func\b"),
+    ("IF", r"if\b"),
+    ("ELSE", r"else\b"),
+    ("WHILE", r"while\b"),
+    ("RETURN", r"return\b"),
 
     # --- Operators ---
     ("EQ", r"=="),
@@ -56,12 +56,14 @@ def lexer(code):
     """
     tokens = []
     index = 0
+    match_found = False
     while index < len(code):
+        match_found = False
         for token_type, regex in TOKEN_REGEXES:
             match = regex.match(code, index)
             if match:
                 text = match.group(0)
-                if token_type not in ("SKIP", "COMMENT"):
+                if token_type not in ("SKIP", "COMMENT", "NEWLINE"):
                     if token_type == "MISMATCH":
                         raise RuntimeError(f"Unexpected character: {text}")
                     tokens.append((token_type, text))

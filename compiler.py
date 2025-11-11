@@ -1,13 +1,14 @@
 class Compiler:
-    """Compiles an AST into a list of bytecode instructions."""
-    
+    """Compiles an Abstract Syntax Tree (AST) into a list of bytecode instructions."""
+
     def __init__(self):
-        """Initializes the compiler, creating an empty list to store bytecode."""
+        """Initializes the compiler with separate storage for main code and functions."""
         self.bytecode = []
+        self.functions = {}
+        self._current_bytecode_list = self.bytecode
 
     def compile(self, ast):
         """Recursively traverses the AST and generates corresponding bytecode."""
-        
         cmd = ast[0]
 
         if cmd == "program":
@@ -17,55 +18,28 @@ class Compiler:
         elif cmd == "assign":
             var_name = ast[1]
             self.compile(ast[2])
-            self.bytecode.append(("STORE", var_name))
+            self._current_bytecode_list.append(("STORE_NAME", var_name))
 
         elif cmd == "print":
             self.compile(ast[1])
-            self.bytecode.append(("PRINT",))
+            self._current_bytecode_list.append(("PRINT",))
 
         elif cmd == "number":
-            self.bytecode.append(("LOAD_CONST", ast[1]))
+            self._current_bytecode_list.append(("LOAD_CONST", ast[1]))
 
         elif cmd == "string":
-            self.bytecode.append(("LOAD_CONST", ast[1]))
+            self._current_bytecode_list.append(("LOAD_CONST", ast[1][1:-1]))
 
         elif cmd == "variable":
-            self.bytecode.append(("LOAD_VAR", ast[1]))
+            self._current_bytecode_list.append(("LOAD_NAME", ast[1]))
 
-        elif cmd == "add":
+        elif cmd in ("add", "sub", "mult", "div", "eq", "ne", "lt", "gt", "le", "ge"):
+            op_map = { "add": "BINARY_ADD", "sub": "BINARY_SUB", "mult": "BINARY_MUL", "div": "BINARY_DIV",
+                       "eq": "BINARY_EQ", "ne": "BINARY_NE", "lt": "BINARY_LT", "gt": "BINARY_GT",
+                       "le": "BINARY_LE", "ge": "BINARY_GE" }
             self.compile(ast[1])
             self.compile(ast[2])
-            self.bytecode.append(("BINARY_ADD",))
-
-        elif cmd == "sub":
-            self.compile(ast[1])
-            self.compile(ast[2])
-            self.bytecode.append(("BINARY_SUB",))
-
-        elif cmd == "mult":
-            self.compile(ast[1])
-            self.compile(ast[2])
-            self.bytecode.append(("BINARY_MUL",))
-
-        elif cmd == "div":
-            self.compile(ast[1])
-            self.compile(ast[2])
-            self.bytecode.append(("BINARY_DIV",))
-
-        elif cmd == "eq":
-            self.compile(ast[1])
-            self.compile(ast[2])
-            self.bytecode.append(("BINARY_EQ",))
-
-        elif cmd == "lt":
-            self.compile(ast[1])
-            self.compile(ast[2])
-            self.bytecode.append(("BINARY_LT",))
-
-        elif cmd == "gt":
-            self.compile(ast[1])
-            self.compile(ast[2])
-            self.bytecode.append(("BINARY_GT",))
+            self._current_bytecode_list.append((op_map[cmd],))
 
         elif cmd == "block":
             for stmt in ast[1]:
@@ -73,72 +47,140 @@ class Compiler:
 
         elif cmd == "if":
             self.compile(ast[1])
-            pos = len(self.bytecode)
-            self.bytecode.append(("JUMP_IF_FALSE", 0))
+            jump_if_false_pos = len(self._current_bytecode_list)
+            self._current_bytecode_list.append(("JUMP_IF_FALSE", 0))
             self.compile(ast[2])
-            self.bytecode[pos] = ("JUMP_IF_FALSE", len(self.bytecode) + 1)
-            if ast[3]:
+            
+            if ast[3]: # else branch exists
+                jump_pos = len(self._current_bytecode_list)
+                self._current_bytecode_list.append(("JUMP", 0))
+                else_target = len(self._current_bytecode_list)
+                self._current_bytecode_list[jump_if_false_pos] = ("JUMP_IF_FALSE", else_target)
                 self.compile(ast[3])
+                end_target = len(self._current_bytecode_list)
+                self._current_bytecode_list[jump_pos] = ("JUMP", end_target)
+            else: # no else branch
+                end_target = len(self._current_bytecode_list)
+                self._current_bytecode_list[jump_if_false_pos] = ("JUMP_IF_FALSE", end_target)
 
         elif cmd == "while":
-            start = len(self.bytecode)
+            loop_start = len(self._current_bytecode_list)
             self.compile(ast[1])
-            pos = len(self.bytecode)
-            self.bytecode.append(("JUMP_IF_FALSE", 0))
+            jump_pos = len(self._current_bytecode_list)
+            self._current_bytecode_list.append(("JUMP_IF_FALSE", 0))
             self.compile(ast[2])
-            self.bytecode.append(("JUMP", start))
-            self.bytecode[pos] = ("JUMP_IF_FALSE", len(self.bytecode))
+            self._current_bytecode_list.append(("JUMP", loop_start))
+            loop_end = len(self._current_bytecode_list)
+            self._current_bytecode_list[jump_pos] = ("JUMP_IF_FALSE", loop_end)
+        
+        elif cmd == "function":
+            name, params, body = ast[1], ast[2], ast[3]
+            func_bytecode = []
+            self._current_bytecode_list = func_bytecode
+            self.compile(body)
+            if not func_bytecode or func_bytecode[-1][0] != "RETURN":
+                func_bytecode.append(("LOAD_CONST", None))
+                func_bytecode.append(("RETURN",))
+            self.functions[name] = {"params": params, "bytecode": func_bytecode}
+            self._current_bytecode_list = self.bytecode
+
+        elif cmd == "call":
+            name, args = ast[1], ast[2]
+            for arg in args:
+                self.compile(arg)
+            self._current_bytecode_list.append(("CALL", name, len(args)))
+
+        elif cmd == "return":
+            self.compile(ast[1])
+            self._current_bytecode_list.append(("RETURN",))
+
+        elif cmd == "expression_statement":
+            self.compile(ast[1])
+            self._current_bytecode_list.append(("POP_TOP",))
 
     def run(self):
         """Executes the generated bytecode using a stack-based VM."""
         stack = []
-        variables = {}
+        globals_vars = {}
+        call_stack = []
         ip = 0
-        while ip < len(self.bytecode):
-            op, *args = self.bytecode[ip]
+        
+        active_bytecode = self.bytecode
+        
+        while ip < len(active_bytecode):
+            op, *args = active_bytecode[ip]
+            current_frame = call_stack[-1] if call_stack else None
+            
+            ip += 1
+
             if op == "LOAD_CONST":
                 stack.append(args[0])
-            elif op == "LOAD_VAR":
-                name = args[0]
-                stack.append(variables[name])
-            elif op == "STORE":
-                value = stack.pop()
-                name = args[0]
-                variables[name] = value
-            elif op == "BINARY_ADD":
-                b = stack.pop()
-                a = stack.pop()
-                stack.append(a + b)
-            elif op == "BINARY_SUB":
-                b = stack.pop()
-                a = stack.pop()
-                stack.append(a - b)
-            elif op == "BINARY_MUL":
-                b = stack.pop()
-                a = stack.pop()
-                stack.append(a * b)
-            elif op == "BINARY_DIV":
-                b = stack.pop()
-                a = stack.pop()
-                stack.append(a // b)
-            elif op == "BINARY_EQ":
-                b = stack.pop()
-                a = stack.pop()
-                stack.append(a == b)
-            elif op == "BINARY_LT":
-                b = stack.pop()
-                a = stack.pop()
-                stack.append(a < b)
-            elif op == "BINARY_GT":
-                b = stack.pop()
-                a = stack.pop()
-                stack.append(a > b)
+            elif op == "POP_TOP":
+                stack.pop()
             elif op == "PRINT":
                 print(stack.pop())
-            elif op == "JUMP_IF_FALSE":
+            
+            elif op == "LOAD_NAME":
+                name = args[0]
+                if current_frame and name in current_frame["locals"]:
+                    stack.append(current_frame["locals"][name])
+                elif name in globals_vars:
+                    stack.append(globals_vars[name])
+                else:
+                    raise NameError(f"name '{name}' is not defined")
+            
+            elif op == "STORE_NAME":
+                name = args[0]
                 value = stack.pop()
-                if not value:
-                    ip = args[0] - 1
+                if current_frame:
+                    current_frame["locals"][name] = value
+                else:
+                    globals_vars[name] = value
+
+            elif op.startswith("BINARY_"):
+                b = stack.pop()
+                a = stack.pop()
+                if op == "BINARY_ADD": stack.append(a + b)
+                elif op == "BINARY_SUB": stack.append(a - b)
+                elif op == "BINARY_MUL": stack.append(a * b)
+                elif op == "BINARY_DIV": stack.append(a // b)
+                elif op == "BINARY_EQ": stack.append(a == b)
+                elif op == "BINARY_NE": stack.append(a != b)
+                elif op == "BINARY_LT": stack.append(a < b)
+                elif op == "BINARY_GT": stack.append(a > b)
+                elif op == "BINARY_LE": stack.append(a <= b)
+                elif op == "BINARY_GE": stack.append(a >= b)
+            
+            elif op == "JUMP_IF_FALSE":
+                if not stack.pop():
+                    ip = args[0]
             elif op == "JUMP":
-                ip = args[0] - 1
-            ip += 1
+                ip = args[0]
+
+            elif op == "CALL":
+                name, num_args = args
+                func = self.functions.get(name)
+                if not func: raise NameError(f"function '{name}' is not defined")
+                
+                if len(func["params"]) != num_args:
+                    raise TypeError(f"function '{name}' takes {len(func['params'])} arguments but {num_args} were given")
+
+                new_frame = {
+                    "return_ip": ip,
+                    "return_bytecode": active_bytecode,
+                    "locals": {}
+                }
+                for i in range(num_args):
+                    arg_name = func["params"][num_args - 1 - i]
+                    new_frame["locals"][arg_name] = stack.pop()
+                
+                call_stack.append(new_frame)
+                active_bytecode = func["bytecode"]
+                ip = 0
+
+            elif op == "RETURN":
+                return_value = stack.pop()
+                frame = call_stack.pop()
+                active_bytecode = frame["return_bytecode"]
+                ip = frame["return_ip"]
+                stack.append(return_value)

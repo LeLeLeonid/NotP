@@ -3,14 +3,12 @@ from lexer import lexer
 
 class Parser:
     """
-    Parses a list of tokens into an AST.
+    Parses a list of tokens into an Abstract Syntax Tree (AST).
     """
     def __init__(self, tokens):
         """Initializes the parser with a list of tokens."""
         self.tokens = tokens
         self.position = 0
-
-    # --- Methods ---
 
     def peek(self):
         """
@@ -42,8 +40,6 @@ class Parser:
             raise RuntimeError(f"Expected token {expected_type} but found end of input")
         return None
 
-    # --- Main Parsing Logic ---
-
     def parse(self):
         """Parses the entire list of tokens into a program AST node."""
         statements = []
@@ -74,8 +70,6 @@ class Parser:
                 return ("expression_statement", self.parse_expression())
         else:
             raise RuntimeError(f"Unexpected statement starting with token: {token}")
-
-    # --- Statement Parsers ---
 
     def parse_print_statement(self):
         """Parses a print statement: print(...)"""
@@ -148,8 +142,6 @@ class Parser:
         self.consume("RBRACE")
         return ("block", statements)
 
-    # --- Expression Parsing Hierarchy ---
-
     def parse_expression(self):
         """Parses a logical comparison expression (lowest precedence)."""
         left = self.parse_term()
@@ -211,8 +203,6 @@ class Parser:
                 args.append(self.parse_expression())
         self.consume("RPAREN")
         return ("call", name, args)
-
-    # --- Helper Methods ---
 
     def _peek_next_significant(self):
         """Helper to look ahead one significant token without consuming."""

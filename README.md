@@ -93,8 +93,8 @@ while (count < limit) {
 -   [x] Robust Parser with correct operator precedence
 -   [x] Tree-walking Interpreter (variables, arithmetic, control flow)
 -   [x] Bytecode Compiler & VM (variables, arithmetic, control flow)
--   [ ] **Next Up**: Full implementation of function definitions, calls, and scopes.
--   [ ] Add more data types (e.g., Arrays, Strings with escape sequences).
+-   [x] Full implementation of function definitions, calls, and scopes.
+-   [ ] **Next Up**: Add more data types (e.g., Arrays, Strings with escape sequences).
 -   [ ] Build a small standard library.
 -   [ ] **Long-term Goal**: Bootstrap the compiler to be self-hosting.
 

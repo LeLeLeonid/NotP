@@ -20,6 +20,9 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.exe
+*.obj
+*.asm
 .env
 .venv
 env/
